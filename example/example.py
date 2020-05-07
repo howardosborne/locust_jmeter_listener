@@ -1,30 +1,27 @@
-from locust import HttpLocust, TaskSet, between
-from locust import web, events
+from locust import HttpUser, TaskSet, task, between
 from plugins.jmeter_listener import JmeterListener
-
-def login(l):
-    l.client.post("/login", {"username":"ellen_key", "password":"education"})
-
-def logout(l):
-    l.client.post("/logout", {"username":"ellen_key", "password":"education"})
 
 def index(l):
     l.client.get("/")
 
-def profile(l):
-    l.client.get("/profile")
+def stats(l):
+    l.client.get("/stats/requests")
 
-class UserBehavior(TaskSet):
-    tasks = {index: 2, profile: 1}
-
-    def on_start(self):
-        login(self)
-
-    def on_stop(self):
-        logout(self)
-
-class WebsiteUser(HttpLocust):
-    task_set = UserBehavior
-    wait_time = between(5.0, 9.0)
+class UserTasks(TaskSet):
+    # one can specify tasks like this
+    tasks = [index, stats]
+    
+    # but it might be convenient to use the @task decorator
+    @task
+    def page404(self):
+        self.client.get("/does_not_exist")
+    
+class WebsiteUser(HttpUser):
+    """
+    User class that does requests to the locust web server running on localhost
+    """
+    host = "http://localhost:8089"
+    wait_time = between(2, 5)
+    tasks = [UserTasks]
 
 JmeterListener()

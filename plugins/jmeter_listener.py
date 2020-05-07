@@ -62,26 +62,27 @@ class JmeterListener:
             "Connect",
         ]
         self.results_file = self.create_results_log()
+        events.request_success.add_listener(self.csv_success_handler)
+        events.request_failure.add_listener(self.csv_request_failure)
+        events.quitting.add_listener(self.write_final_log)
+        events.init.add_listener(self.on_locust_init)
 
-        events.request_success += self.csv_success_handler
-        events.request_failure += self.csv_request_failure
-        events.quitting += self.write_final_log
-
-    @web.app.route("/csv_results.csv")
-    def csv_results_page(self):
-        """
-        a different way of obtaining results rather than writing to disk
-        to use it getting all results back, set the flush_size to
-        a high enough figure that it will not flush
-        """
-        response = web.app.response_class(
-            response=self.field_delimiter.join(self.csv_headers)
-            + self.row_delimiter
-            + self.field_delimiter.join(self.csv_results),
-            status=200,
-            mimetype="text/csv",
-        )
-        return response
+    def on_locust_init(self,web_ui, **kw):
+        @web_ui.app.route("/csv_results.csv")
+        def csv_results_page(self):
+            """
+            a different way of obtaining results rather than writing to disk
+            to use it getting all results back, set the flush_size to
+            a high enough figure that it will not flush
+            """
+            response = web.app.response_class(
+                response=self.field_delimiter.join(self.csv_headers)
+                + self.row_delimiter
+                + self.field_delimiter.join(self.csv_results),
+                status=200,
+                mimetype="text/csv",
+            )
+            return response
 
     def add_result(
         self,
@@ -132,7 +133,7 @@ class JmeterListener:
         if len(self.csv_results) >= self.flush_size:
             self.flush_to_log()
         self.csv_results.append(self.field_delimiter.join(row))
-
+    
     def csv_success_handler(
         self, request_type, name, response_time, response_length, **kw
     ):
@@ -149,17 +150,14 @@ class JmeterListener:
         """
         handler for failed request event
         """
-
         self.add_result(
-            "false", request_type, name, response_time, response_length, exception, **kw
+            "false", request_type, name, response_time, response_length, str(exception), **kw
         )
 
-    # performs an initial write to log with the headers
     def create_results_log(self):
         """
         creates a results log
         """
-
         results_file = open(self.results_filename, "w")
         results_file.write(
             self.field_delimiter.join(self.csv_headers) + self.row_delimiter
@@ -167,7 +165,6 @@ class JmeterListener:
         results_file.close()
         return results_file
 
-    # performs a flush of the captured stats to log
     def flush_to_log(self):
         """
         flushes results to log file
@@ -179,7 +176,6 @@ class JmeterListener:
         self.results_file.close()
         self.csv_results = []
 
-    # performs the final write to the log file
     def write_final_log(self):
         """
         performs final write to log file when test complete
