@@ -7,8 +7,9 @@ import json, random, string
 class MakePurchase(SequentialTaskSet):
     
     def on_start(self):
-        self.client.proxies = { "http"  : "http://localhost:8888", "https" : "https://localhost:8888"}
-        self.client.verify = False
+        #use protocol analyser to debug
+        #self.client.proxies = { "http"  : "http://localhost:8888", "https" : "https://localhost:8888"}
+        #self.client.verify = False
         r_s = ''.join(random.choices(string.ascii_lowercase + string.digits, k=32))
         self.user_cookie = r_s[:8] + "-" + r_s[8:12] + "-" + r_s[12:16] + "-" + r_s[16:20] + "-" + r_s[20:32]
         r_s = ''.join(random.choices(string.ascii_lowercase + string.digits, k=32))
