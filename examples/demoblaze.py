@@ -1,28 +1,18 @@
-from locust import HttpUser, SequentialTaskSet, task, between
-from plugins.jmeter_listener import JmeterListener
-import json, random, string
+from locust import HttpUser, SequentialTaskSet, task, between, events
+from locust_plugins.jmeter_listener import JmeterListener
+import logging
 
-#def print_url(r, *args, **kwargs):
-#    print(r.url)
+import json, random, string
 
 class MakePurchase(SequentialTaskSet):
     
     def on_start(self):
-        #self.client.proxies = { "http"  : "http://localhost:8888", "https" : "https://localhost:8888"}
-        #self.client.verify = False
-        #self.client.hooks['response'].append(print_url)
-        self.user_cookie = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8)) + "-"
-        self.user_cookie +=''.join(random.choices(string.ascii_lowercase + string.digits, k=4)) + "-"
-        self.user_cookie +=''.join(random.choices(string.ascii_lowercase + string.digits, k=4)) + "-"
-        self.user_cookie +=''.join(random.choices(string.ascii_lowercase + string.digits, k=4)) + "-"
-        self.user_cookie +=''.join(random.choices(string.ascii_lowercase + string.digits, k=12))
-        #self.user_cookie = "e5210750-97df-1064-d195-b1189a20add5"
-        self.purchase_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8)) + "-"
-        self.purchase_id +=''.join(random.choices(string.ascii_lowercase + string.digits, k=4)) + "-"
-        self.purchase_id +=''.join(random.choices(string.ascii_lowercase + string.digits, k=4)) + "-"
-        self.purchase_id +=''.join(random.choices(string.ascii_lowercase + string.digits, k=4)) + "-"
-        self.purchase_id +=''.join(random.choices(string.ascii_lowercase + string.digits, k=12))
-        #self.purchase_id = "6aafb8ea-d35a-e9c7-b4ff-7cc1efa2b217"
+        self.client.proxies = { "http"  : "http://localhost:8888", "https" : "https://localhost:8888"}
+        self.client.verify = False
+        r_s = ''.join(random.choices(string.ascii_lowercase + string.digits, k=32))
+        self.user_cookie = r_s[:8] + "-" + r_s[8:12] + "-" + r_s[12:16] + "-" + r_s[16:20] + "-" + r_s[20:32]
+        r_s = ''.join(random.choices(string.ascii_lowercase + string.digits, k=32))
+        self.purchase_id = r_s[:8] + "-" + r_s[8:12] + "-" + r_s[12:16] + "-" + r_s[16:20] + "-" + r_s[20:32]
 
     @task
     def home(self):
@@ -69,17 +59,12 @@ class MakePurchase(SequentialTaskSet):
         payload = '{"cookie":"user=' + self.user_cookie + '"}'
         response = self.client.post(self.api_host + "/deletecart", payload, headers={"Content-Type": "application/json"},  name="09 /deletecart")
 
-
-class WebsiteUser(HttpUser):
+class DemoBlazeUser(HttpUser):
     """
     User class that does requests to the locust web server running on localhost
     """
     host = "https://www.demoblaze.com"
     wait_time = between(2, 5)
     tasks = [MakePurchase]
-
-    def on_start(self):
-        jmeter_listener.add_user()
-        jmeter_listener.set_user_name(self.__class__.__name__)
-
+    
 jmeter_listener = JmeterListener()
