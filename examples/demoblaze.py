@@ -58,7 +58,10 @@ class MakePurchase(SequentialTaskSet):
     @task
     def ninth_task(self):
         payload = '{"cookie":"user=' + self.user_cookie + '"}'
-        response = self.client.post(self.api_host + "/deletecart", payload, headers={"Content-Type": "application/json"},  name="09 /deletecart")
+        #response = self.client.post(self.api_host + "/deletecart", payload, headers={"Content-Type": "application/json"},  name="09 /deletecart", catch_response=True)
+        with self.client.post(self.api_host + "/deletecart", payload, headers={"Content-Type": "application/json"},  name="09 /deletecart", catch_response=True) as response:
+            if response.content != b"Delete complete":
+                response.failure("delete incomplete")
 
 class DemoBlazeUser(HttpUser):
     """
